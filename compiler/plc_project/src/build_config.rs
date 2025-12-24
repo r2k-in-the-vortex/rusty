@@ -26,7 +26,6 @@ pub struct LibraryConfig {
     pub architectures: Vec<Target>,
 }
 
-
 /// Targets to use if no other targets have been defined
 fn default_targets() -> Vec<Target> {
     vec!["x86_64-linux-gnu".into(), "aarch64-linux-gnu".into()]
@@ -96,10 +95,7 @@ impl ProjectConfig {
         let compiled = JSONSchema::compile(&schema_obj).expect("A valid schema");
         let instance = json!(self);
         compiled.validate(&instance).map_err(|errors| {
-            let mut message = format!(
-                "{} could not be validated due to the following errors:\n",
-                sourcefile
-                );
+            let mut message = format!("{} could not be validated due to the following errors:\n", sourcefile);
             for err in errors {
                 let prefix = match err.kind {
                     jsonschema::error::ValidationErrorKind::MinItems { .. } => {
@@ -350,7 +346,7 @@ mod tests {
             }
         "#
             .into(),
-            &filepath
+            &filepath,
         )
         .unwrap();
 
@@ -360,8 +356,7 @@ mod tests {
     #[test]
     fn valid_json_validates_without_errors() {
         let filepath = "plc.json".to_string();
-        let cfg = ProjectConfig::try_parse(SIMPLE_PROGRAM.into(),
-            &filepath);
+        let cfg = ProjectConfig::try_parse(SIMPLE_PROGRAM.into(), &filepath);
 
         assert!(cfg.is_ok())
     }
@@ -369,8 +364,7 @@ mod tests {
     #[test]
     fn json_with_additional_fields_reports_unexpected_fields() {
         let filepath = "plc.json".to_string();
-        let Err(diag) = ProjectConfig::try_parse(ADDITIONAL_UNKNOWN_PROPERTIES.into(),
-            &filepath) else {
+        let Err(diag) = ProjectConfig::try_parse(ADDITIONAL_UNKNOWN_PROPERTIES.into(), &filepath) else {
             panic!("expected errors")
         };
 
@@ -380,8 +374,7 @@ mod tests {
     #[test]
     fn json_with_invalid_enum_variants_reports_error() {
         let filepath = "plc.json".to_string();
-        let Err(diag) = ProjectConfig::try_parse(INVALID_ENUM_VARIANTS.into(),
-            &filepath) else {
+        let Err(diag) = ProjectConfig::try_parse(INVALID_ENUM_VARIANTS.into(), &filepath) else {
             panic!("expected errors")
         };
 
@@ -393,14 +386,14 @@ mod tests {
         let filepath = "plc.json".to_string();
         // missing name and compile_type
         //XXX: only the first error found is reported by both serde and jsonschema
-        let Err(diag) = ProjectConfig::try_parse(MISSING_REQUIRED_PROPERTIES.into(),
-            &filepath) else {
+        let Err(diag) = ProjectConfig::try_parse(MISSING_REQUIRED_PROPERTIES.into(), &filepath) else {
             panic!("expected errors")
         };
         assert_snapshot!(diag.to_string());
 
         // missing library path
-        let Err(diag) = ProjectConfig::try_parse(MISSING_REQUIRED_LIBRARY_PROPERTIES.into(), &filepath) else {
+        let Err(diag) = ProjectConfig::try_parse(MISSING_REQUIRED_LIBRARY_PROPERTIES.into(), &filepath)
+        else {
             panic!("expected errors")
         };
         assert_snapshot!(diag.to_string())
@@ -409,8 +402,7 @@ mod tests {
     #[test]
     fn json_with_empty_files_array_reports_error() {
         let filepath = "plc.json".to_string();
-        let Err(diag) = ProjectConfig::try_parse(NO_FILES_SPECIFIED.into(),
-            &filepath) else {
+        let Err(diag) = ProjectConfig::try_parse(NO_FILES_SPECIFIED.into(), &filepath) else {
             panic!("expected errors")
         };
 
@@ -420,8 +412,7 @@ mod tests {
     #[test]
     fn json_with_optional_properties_is_valid() {
         let filepath = "plc.json".to_string();
-        match ProjectConfig::try_parse(OPTIONAL_PROPERTIES.into(),
-            &filepath) {
+        match ProjectConfig::try_parse(OPTIONAL_PROPERTIES.into(), &filepath) {
             Ok(cfg) => assert_snapshot!(&format!("{:#?}", cfg)),
             Err(err) => panic!("expected ProjectConfig to be OK, got \n {err}"),
         };

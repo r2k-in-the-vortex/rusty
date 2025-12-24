@@ -8,9 +8,9 @@ use glob::glob;
 use regex::Regex;
 
 use crate::{
-    online_change_config::OnlineChangeConfig,
     build_config::{LinkageInfo, ProjectConfig},
     object::Object,
+    online_change_config::OnlineChangeConfig,
 };
 
 use plc::output::FormatOption;
@@ -172,10 +172,7 @@ impl Project<PathBuf> {
         let current_dir = env::current_dir()?;
         let location = config.parent().map(Path::to_path_buf).or(Some(current_dir));
         let sources = resolve_file_paths(location.as_deref(), project_config.files)?;
-        let default_online_change = OnlineChangeConfig {
-            enabled: false,
-            got_layout_file: None,
-        };
+        let default_online_change = OnlineChangeConfig { enabled: false, got_layout_file: None };
         let online_changes = project_config.online_changes.unwrap_or(default_online_change);
         Ok(Project {
             name: project_config.name,

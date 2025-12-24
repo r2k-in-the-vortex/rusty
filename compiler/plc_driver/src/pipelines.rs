@@ -84,7 +84,8 @@ impl TryFrom<CompileParameters> for BuildPipeline<PathBuf> {
         let project = get_project(&compile_parameters)?;
         let mut compile_parameters: CompileParameters = compile_parameters;
         compile_parameters.online_change = project.get_online_change() || compile_parameters.online_change;
-        compile_parameters.got_layout_file = project.get_got_layout_file().unwrap_or(&compile_parameters.got_layout_file).clone();
+        compile_parameters.got_layout_file =
+            project.get_got_layout_file().unwrap_or(&compile_parameters.got_layout_file).clone();
         let location = project.get_location().map(|it| it.to_path_buf());
         if let Some(location) = &location {
             log::debug!("PROJECT_ROOT={}", location.to_string_lossy());
@@ -435,7 +436,8 @@ impl<T: SourceContainer> Pipeline for BuildPipeline<T> {
             let file_path = compile_directory.join(file_name);
 
             // 3. Handle the lock safely
-            let layout_data = got_layout.into_inner()
+            let layout_data = got_layout
+                .into_inner()
                 .map_err(|_| Diagnostic::new("Internal error: GOT layout lock is poisoned"))?;
             println!("{}", file_path.to_string_lossy().as_ref());
             write_got_layout(layout_data, file_path.to_string_lossy().as_ref(), *format)?;
@@ -479,7 +481,8 @@ fn write_got_layout(
             .map_err(|_| Diagnostic::new("Could not serialize GOT layout to TOML"))?,
     };
 
-    fs::write(location, s).map_err(|_| Diagnostic::new(format!("GOT layout could not be written to {}", location)))
+    fs::write(location, s)
+        .map_err(|_| Diagnostic::new(format!("GOT layout could not be written to {}", location)))
 }
 
 ///Represents a parsed project
