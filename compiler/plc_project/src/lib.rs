@@ -3,5 +3,6 @@
 //! This crate is also responsible for `SourceCode`, that is how a source code is read from disk
 //! and handled
 mod build_config;
+mod online_change_config;
 pub mod object;
 pub mod project;

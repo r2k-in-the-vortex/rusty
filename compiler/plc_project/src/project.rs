@@ -8,6 +8,7 @@ use glob::glob;
 use regex::Regex;
 
 use crate::{
+    online_change_config::OnlineChangeConfig,
     build_config::{LinkageInfo, ProjectConfig},
     object::Object,
 };
@@ -84,6 +85,10 @@ pub struct Project<T: SourceContainer> {
     format: FormatOption,
     /// Output Name
     output: Option<String>,
+    /// Online change Enable
+    online_changes: bool,
+    /// GOT layout file path
+    got_layout_file: Option<String>,
 }
 
 impl<T: SourceContainer> LibraryInformation<T> {
@@ -167,6 +172,11 @@ impl Project<PathBuf> {
         let current_dir = env::current_dir()?;
         let location = config.parent().map(Path::to_path_buf).or(Some(current_dir));
         let sources = resolve_file_paths(location.as_deref(), project_config.files)?;
+        let default_online_change = OnlineChangeConfig {
+            enabled: false,
+            got_layout_file: None,
+        };
+        let online_changes = project_config.online_changes.unwrap_or(default_online_change);
         Ok(Project {
             name: project_config.name,
             location,
@@ -177,6 +187,8 @@ impl Project<PathBuf> {
             includes: vec![],
             objects: vec![],
             library_paths: vec![],
+            online_changes: online_changes.get_enabled(),
+            got_layout_file: online_changes.get_got_layout_file().cloned(),
         })
     }
 
@@ -213,6 +225,8 @@ impl<S: SourceContainer> Project<S> {
             library_paths: vec![],
             format: FormatOption::default(),
             output: None,
+            online_changes: false,
+            got_layout_file: None,
         }
     }
 
@@ -310,6 +324,14 @@ impl<S: SourceContainer> Project<S> {
     pub fn get_init_symbol_name(&self) -> &'static str {
         //Converts into static because this will live forever
         format!("__init___{}", self.get_name().replace(['.', '-'], "_")).leak()
+    }
+
+    pub fn get_online_change(&self) -> bool {
+        self.online_changes
+    }
+
+    pub fn get_got_layout_file(&self) -> Option<&String> {
+        self.got_layout_file.as_ref()
     }
 }
 

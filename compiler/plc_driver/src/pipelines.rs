@@ -82,6 +82,9 @@ impl TryFrom<CompileParameters> for BuildPipeline<PathBuf> {
     fn try_from(compile_parameters: CompileParameters) -> Result<Self, Self::Error> {
         //Create the project that will be compiled
         let project = get_project(&compile_parameters)?;
+        let mut compile_parameters: CompileParameters = compile_parameters;
+        compile_parameters.online_change = project.get_online_change() || compile_parameters.online_change;
+        compile_parameters.got_layout_file = project.get_got_layout_file().unwrap_or(&compile_parameters.got_layout_file).clone();
         let location = project.get_location().map(|it| it.to_path_buf());
         if let Some(location) = &location {
             log::debug!("PROJECT_ROOT={}", location.to_string_lossy());
@@ -420,7 +423,22 @@ impl<T: SourceContainer> Pipeline for BuildPipeline<T> {
                 .collect::<Result<Vec<_>, Diagnostic>>()?;
         }
         if let OnlineChange::Enabled { file_name, format } = &compile_options.online_change {
-            write_got_layout(got_layout.into_inner().unwrap(), file_name, *format)?;
+            // 1. Safely determine the directory
+            let compile_directory: PathBuf = match &compile_options.build_location {
+                Some(loc) => PathBuf::from(loc),
+                None => tempfile::tempdir()
+                    .map_err(|e| Diagnostic::new(format!("Failed to create temp dir: {}", e)))?
+                    .keep(), // Converts TempDir to PathBuf and keeps it (if persistence is intended)
+            };
+
+            // 2. Use PathBuf for safe, cross-platform concatenation
+            let file_path = compile_directory.join(file_name);
+
+            // 3. Handle the lock safely
+            let layout_data = got_layout.into_inner()
+                .map_err(|_| Diagnostic::new("Internal error: GOT layout lock is poisoned"))?;
+            println!("{}", file_path.to_string_lossy().as_ref());
+            write_got_layout(layout_data, file_path.to_string_lossy().as_ref(), *format)?;
         }
         self.participants
             .iter()
@@ -461,7 +479,7 @@ fn write_got_layout(
             .map_err(|_| Diagnostic::new("Could not serialize GOT layout to TOML"))?,
     };
 
-    fs::write(location, s).map_err(|_| Diagnostic::new("GOT layout could not be written to file"))
+    fs::write(location, s).map_err(|_| Diagnostic::new(format!("GOT layout could not be written to {}", location)))
 }
 
 ///Represents a parsed project

@@ -1,77 +1,92 @@
 {
-            "$schema": "http://json-schema.org/draft-06/schema#",
-            "title": "Schema for plc.json",
-            "type": "object",
-            "properties": {
-              "name": {
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "title": "Schema for plc.json",
+    "type": "object",
+    "properties": {
+        "name": {
+            "type": "string"
+        },
+        "version": {
+            "type": "string"
+        },
+        "format_version": {
+            "type": "string"
+        },
+        "files": {
+            "type": "array",
+            "items": {
                 "type": "string"
-              },
-              "version": {
-                "type": "string"
-              },
-              "format_version": {
-                "type": "string"
-              },
-              "files": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                },
-                "minItems": 1
-              },
-              "compile_type": {
-                "type": "string"
-              },
-              "output": {
-                "type": "string"
-              },
-              "libraries": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
+            },
+            "minItems": 1
+        },
+        "compile_type": {
+            "type": "string"
+        },
+        "output": {
+            "type": "string"
+        },
+        "libraries": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
                     "name": {
-                      "type": "string"
+                        "type": "string"
                     },
                     "path": {
-                      "type": "string"
+                        "type": "string"
                     },
                     "package": {
-                      "type": "string"
+                        "type": "string"
                     },
                     "include_path": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "architectures": {
-                      "type": "array",
-                      "items": {
-                        "type": "object"
-                      }
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
                     }
-                  },
-                  "additionalProperties": false,
-                  "required": [
+                },
+                "additionalProperties": false,
+                "required": [
                     "name",
                     "path",
                     "package",
                     "include_path"
-                  ]
+                ]
+            }
+        },
+        "package_commands": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "online_changes": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "got_layout_file": {
+                    "type": "string"
                 }
-              },
-              "package_commands": {
-                  "type": "array",
-                  "items": {
-                      "type": "string"
-                  }
-              }
             },
             "additionalProperties": false,
             "required": [
-              "name",
-              "files",
-              "compile_type"
+                "enabled"
             ]
         }
+    },
+    "additionalProperties": false,
+    "required": [
+        "name",
+        "files",
+        "compile_type"
+    ]
+}

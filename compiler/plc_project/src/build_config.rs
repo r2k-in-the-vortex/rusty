@@ -14,6 +14,8 @@ use std::path::PathBuf;
 
 use plc::output::FormatOption;
 
+use crate::online_change_config::OnlineChangeConfig;
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct LibraryConfig {
     pub name: String,
@@ -23,6 +25,7 @@ pub struct LibraryConfig {
     #[serde(default = "default_targets")]
     pub architectures: Vec<Target>,
 }
+
 
 /// Targets to use if no other targets have been defined
 fn default_targets() -> Vec<Target> {
@@ -58,17 +61,21 @@ pub struct ProjectConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(alias = "format-version")]
     pub format_version: Option<String>,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(alias = "online-changes")]
+    pub online_changes: Option<OnlineChangeConfig>,
 }
 
 impl ProjectConfig {
     /// Returns a project from the given json-source
     /// All environment variables (marked with `$VAR_NAME`) that can be resovled at this time are resolved before the conversion
-    pub fn try_parse(source: BuildDescriptionSource) -> Result<Self> {
+    pub fn try_parse(source: BuildDescriptionSource, sourcefile: &String) -> Result<Self> {
         let content = source.source.as_str();
         let content = resolve_environment_variables(content)?;
         let config: ProjectConfig =
             serde_json::from_str(&content).map_err(|err| Diagnostic::from_serde_error(err, &source))?;
-        config.validate()?;
+        config.validate(sourcefile)?;
 
         Ok(config)
     }
@@ -77,20 +84,22 @@ impl ProjectConfig {
         //read from file
         let content = fs::read_to_string(config)?;
         let content = BuildDescriptionSource::new(content, config);
-
+        let filepath = config.display().to_string();
         //convert file to Object
-        let project = ProjectConfig::try_parse(content)?;
-
+        let project = ProjectConfig::try_parse(content, &filepath)?;
         Ok(project)
     }
 
-    fn validate(&self) -> Result<()> {
+    fn validate(&self, sourcefile: &String) -> Result<()> {
         let schema = include_str!("../schema/plc-json.schema");
         let schema_obj = serde_json::from_str(schema).expect("A valid schema");
         let compiled = JSONSchema::compile(&schema_obj).expect("A valid schema");
         let instance = json!(self);
         compiled.validate(&instance).map_err(|errors| {
-            let mut message = String::from("plc.json could not be validated due to the following errors:\n");
+            let mut message = format!(
+                "{} could not be validated due to the following errors:\n",
+                sourcefile
+                );
             for err in errors {
                 let prefix = match err.kind {
                     jsonschema::error::ValidationErrorKind::MinItems { .. } => {
@@ -301,10 +310,12 @@ mod tests {
                 },
             ],
             package_commands: vec![],
+            online_changes: None,
             version: None,
             format_version: None,
         };
-        let proj = ProjectConfig::try_parse(SIMPLE_PROGRAM.into()).unwrap();
+        let filepath = "plc.json".to_string();
+        let proj = ProjectConfig::try_parse(SIMPLE_PROGRAM.into(), &filepath).unwrap();
 
         assert_eq!(test_project.name, proj.name);
         assert_eq!(test_project.files, proj.files);
@@ -324,6 +335,7 @@ mod tests {
 
     #[test]
     fn project_creation_resolves_environment_vars() {
+        let filepath = "plc.json".to_string();
         //Add env
         env::set_var("test_var", "test_value");
         let proj = ProjectConfig::try_parse(
@@ -338,6 +350,7 @@ mod tests {
             }
         "#
             .into(),
+            &filepath
         )
         .unwrap();
 
@@ -346,14 +359,18 @@ mod tests {
 
     #[test]
     fn valid_json_validates_without_errors() {
-        let cfg = ProjectConfig::try_parse(SIMPLE_PROGRAM.into());
+        let filepath = "plc.json".to_string();
+        let cfg = ProjectConfig::try_parse(SIMPLE_PROGRAM.into(),
+            &filepath);
 
         assert!(cfg.is_ok())
     }
 
     #[test]
     fn json_with_additional_fields_reports_unexpected_fields() {
-        let Err(diag) = ProjectConfig::try_parse(ADDITIONAL_UNKNOWN_PROPERTIES.into()) else {
+        let filepath = "plc.json".to_string();
+        let Err(diag) = ProjectConfig::try_parse(ADDITIONAL_UNKNOWN_PROPERTIES.into(),
+            &filepath) else {
             panic!("expected errors")
         };
 
@@ -362,7 +379,9 @@ mod tests {
 
     #[test]
     fn json_with_invalid_enum_variants_reports_error() {
-        let Err(diag) = ProjectConfig::try_parse(INVALID_ENUM_VARIANTS.into()) else {
+        let filepath = "plc.json".to_string();
+        let Err(diag) = ProjectConfig::try_parse(INVALID_ENUM_VARIANTS.into(),
+            &filepath) else {
             panic!("expected errors")
         };
 
@@ -371,15 +390,17 @@ mod tests {
 
     #[test]
     fn json_with_missing_required_properties_reports_error() {
+        let filepath = "plc.json".to_string();
         // missing name and compile_type
         //XXX: only the first error found is reported by both serde and jsonschema
-        let Err(diag) = ProjectConfig::try_parse(MISSING_REQUIRED_PROPERTIES.into()) else {
+        let Err(diag) = ProjectConfig::try_parse(MISSING_REQUIRED_PROPERTIES.into(),
+            &filepath) else {
             panic!("expected errors")
         };
         assert_snapshot!(diag.to_string());
 
         // missing library path
-        let Err(diag) = ProjectConfig::try_parse(MISSING_REQUIRED_LIBRARY_PROPERTIES.into()) else {
+        let Err(diag) = ProjectConfig::try_parse(MISSING_REQUIRED_LIBRARY_PROPERTIES.into(), &filepath) else {
             panic!("expected errors")
         };
         assert_snapshot!(diag.to_string())
@@ -387,7 +408,9 @@ mod tests {
 
     #[test]
     fn json_with_empty_files_array_reports_error() {
-        let Err(diag) = ProjectConfig::try_parse(NO_FILES_SPECIFIED.into()) else {
+        let filepath = "plc.json".to_string();
+        let Err(diag) = ProjectConfig::try_parse(NO_FILES_SPECIFIED.into(),
+            &filepath) else {
             panic!("expected errors")
         };
 
@@ -396,7 +419,9 @@ mod tests {
 
     #[test]
     fn json_with_optional_properties_is_valid() {
-        match ProjectConfig::try_parse(OPTIONAL_PROPERTIES.into()) {
+        let filepath = "plc.json".to_string();
+        match ProjectConfig::try_parse(OPTIONAL_PROPERTIES.into(),
+            &filepath) {
             Ok(cfg) => assert_snapshot!(&format!("{:#?}", cfg)),
             Err(err) => panic!("expected ProjectConfig to be OK, got \n {err}"),
         };

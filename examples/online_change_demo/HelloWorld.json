@@ -1,0 +1,14 @@
+{
+    "name": "HelloWorld",
+    "files" : [
+        "hello_world.st"
+    ],
+    "output" : "HelloWorld",
+    "compile_type" : "Shared",
+    "libraries" : [
+    ],
+    "online_changes": {
+        "enabled": true,
+        "got_layout_file": "got.json"
+    }
+}
