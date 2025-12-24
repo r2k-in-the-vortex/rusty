@@ -19,4 +19,5 @@ ProjectConfig {
     format_version: Some(
         "0.2",
     ),
+    online_changes: None,
 }
