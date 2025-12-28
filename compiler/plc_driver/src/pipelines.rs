@@ -424,16 +424,11 @@ impl<T: SourceContainer> Pipeline for BuildPipeline<T> {
                 .collect::<Result<Vec<_>, Diagnostic>>()?;
         }
         if let OnlineChange::Enabled { file_name, format } = &compile_options.online_change {
-            // 1. Safely determine the directory
-            let compile_directory: PathBuf = match &compile_options.build_location {
-                Some(loc) => PathBuf::from(loc),
-                None => tempfile::tempdir()
-                    .map_err(|e| Diagnostic::new(format!("Failed to create temp dir: {}", e)))?
-                    .keep(), // Converts TempDir to PathBuf and keeps it (if persistence is intended)
+            // 1. Safely determine the directory, if build location exists, output there, else current dir
+            let file_path: PathBuf = match &compile_options.build_location {
+                Some(loc) => PathBuf::from(loc).join(file_name),
+                None => PathBuf::from(file_name),
             };
-
-            // 2. Use PathBuf for safe, cross-platform concatenation
-            let file_path = compile_directory.join(file_name);
 
             // 3. Handle the lock safely
             let layout_data = got_layout
