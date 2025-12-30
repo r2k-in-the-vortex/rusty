@@ -130,7 +130,11 @@ impl TryFrom<CompileParameters> for BuildPipeline<PathBuf> {
                 None,
             )?;
 
-        let linker = compile_parameters.linker.as_deref().into();
+        let linker = if project.get_linker().is_some() {
+            project.get_linker().as_deref().into()
+        } else {
+            compile_parameters.linker.as_deref().into()
+        };
         Ok(BuildPipeline {
             context,
             project,
@@ -434,7 +438,7 @@ impl<T: SourceContainer> Pipeline for BuildPipeline<T> {
             let layout_data = got_layout
                 .into_inner()
                 .map_err(|_| Diagnostic::new("Internal error: GOT layout lock is poisoned"))?;
-            println!("{}", file_path.to_string_lossy().as_ref());
+            println!("Writing got layout file to {}", file_path.to_string_lossy().as_ref());
             write_got_layout(layout_data, file_path.to_string_lossy().as_ref(), *format)?;
         }
         self.participants

@@ -89,6 +89,8 @@ pub struct Project<T: SourceContainer> {
     online_changes: bool,
     /// GOT layout file path
     got_layout_file: Option<String>,
+    /// linker script path
+    linker: Option<String>,
 }
 
 impl<T: SourceContainer> LibraryInformation<T> {
@@ -186,6 +188,7 @@ impl Project<PathBuf> {
             library_paths: vec![],
             online_changes: online_changes.get_enabled(),
             got_layout_file: online_changes.get_got_layout_file().cloned(),
+            linker: project_config.linker,
         })
     }
 
@@ -224,6 +227,7 @@ impl<S: SourceContainer> Project<S> {
             output: None,
             online_changes: false,
             got_layout_file: None,
+            linker: None,
         }
     }
 
@@ -329,6 +333,10 @@ impl<S: SourceContainer> Project<S> {
 
     pub fn get_got_layout_file(&self) -> Option<&String> {
         self.got_layout_file.as_ref()
+    }
+
+    pub fn get_linker(&self) -> Option<String> {
+        self.linker.clone()
     }
 }
 

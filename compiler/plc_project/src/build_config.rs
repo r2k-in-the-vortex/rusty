@@ -64,6 +64,10 @@ pub struct ProjectConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(alias = "online-changes")]
     pub online_changes: Option<OnlineChangeConfig>,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(alias = "linker")]
+    pub linker: Option<String>,
 }
 
 impl ProjectConfig {
@@ -309,6 +313,7 @@ mod tests {
             online_changes: None,
             version: None,
             format_version: None,
+            linker: None,
         };
         let filepath = "plc.json".to_string();
         let proj = ProjectConfig::try_parse(SIMPLE_PROGRAM.into(), &filepath).unwrap();

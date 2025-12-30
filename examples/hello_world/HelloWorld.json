@@ -1,0 +1,11 @@
+{
+    "name": "HelloWorld",
+    "files" : [
+        "hello_world.st"
+    ],
+    "output" : "HelloWorld",
+    "compile_type" : "Static",
+    "libraries" : [
+    ],
+    "linker": "cc"
+}
